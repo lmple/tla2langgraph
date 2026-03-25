@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +14,11 @@ from tla2langgraph.models import ParseError, ParseErrorType
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 runner = CliRunner()
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text."""
+    return re.sub(r"\x1b\[[0-9;]*[mGKHF]", "", text)
 
 
 # ---------------------------------------------------------------------------
@@ -38,8 +44,9 @@ def test_find_free_port_auto() -> None:
 def test_cli_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "no-browser" in result.output
-    assert "port" in result.output.lower()
+    output = _strip_ansi(result.output)
+    assert "no-browser" in output
+    assert "port" in output.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -146,3 +153,65 @@ def test_cli_graph_builder_error_exits_2() -> None:
         result = runner.invoke(app, [str(tla), "--no-browser"])
 
     assert result.exit_code == 2
+
+
+def test_cli_warns_when_no_init(tmp_path: Path) -> None:
+    """Cover line 69: warning printed when tla_module.init is None."""
+    tla = FIXTURES / "traffic_light.tla"
+
+    from tla2langgraph.models import NextRelation, SubAction, TLAModule
+
+    mock_module = TLAModule(
+        module_name="Test",
+        variables=(),
+        init=None,
+        next=NextRelation(sub_actions=(), source_line=1),
+        source_file=tla,
+    )
+
+    with patch("tla2langgraph.cli.parse_tla", return_value=mock_module), \
+         patch("tla2langgraph.cli.build_state_machine") as mock_build, \
+         patch("tla2langgraph.cli.uvicorn.run"):
+        from tla2langgraph.models import StateMachine
+        mock_build.return_value = StateMachine(source_module="Test")
+        result = runner.invoke(app, [str(tla), "--no-browser"])
+
+    assert result.exit_code == 0
+    assert "no Init operator" in result.output
+
+
+def test_cli_warns_when_no_sub_actions(tmp_path: Path) -> None:
+    """Cover line 73: warning printed when Next has no sub-actions."""
+    tla = FIXTURES / "traffic_light.tla"
+
+    from tla2langgraph.models import InitPredicate, NextRelation, TLAModule
+
+    mock_module = TLAModule(
+        module_name="Test",
+        variables=(),
+        init=InitPredicate(assignments=()),
+        next=NextRelation(sub_actions=(), source_line=1),
+        source_file=tla,
+    )
+
+    with patch("tla2langgraph.cli.parse_tla", return_value=mock_module), \
+         patch("tla2langgraph.cli.build_state_machine") as mock_build, \
+         patch("tla2langgraph.cli.uvicorn.run"):
+        from tla2langgraph.models import StateMachine
+        mock_build.return_value = StateMachine(source_module="Test")
+        result = runner.invoke(app, [str(tla), "--no-browser"])
+
+    assert result.exit_code == 0
+    assert "diagram will be empty" in result.output
+
+
+def test_cli_keyboard_interrupt_exits_0() -> None:
+    """Cover lines 97-99: KeyboardInterrupt during uvicorn.run → exit 0."""
+    tla = FIXTURES / "traffic_light.tla"
+
+    with patch("tla2langgraph.cli.uvicorn.run") as mock_uvicorn, \
+         patch("tla2langgraph.cli._find_free_port", return_value=18423):
+        mock_uvicorn.side_effect = KeyboardInterrupt()
+        result = runner.invoke(app, [str(tla), "--no-browser"])
+
+    assert result.exit_code == 0
