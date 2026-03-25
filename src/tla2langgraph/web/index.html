@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tla2langgraph</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f5f5f5; }
+
+    header {
+      background: #1a1a2e; color: #fff; padding: 10px 16px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    header h1 { font-size: 1rem; font-weight: 600; }
+    header .spacer { flex: 1; }
+
+    .btn {
+      background: #16213e; border: 1px solid #0f3460; color: #e0e0e0;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #0f3460; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    #cy { flex: 1; background: #fff; }
+
+    #inspector {
+      width: 240px; background: #fff; border-left: 1px solid #ddd;
+      padding: 14px; overflow-y: auto; font-size: 0.82rem; flex-shrink: 0;
+    }
+    #inspector h2 { font-size: 0.9rem; margin-bottom: 8px; color: #333; }
+    #inspector .field { margin-bottom: 6px; }
+    #inspector .field label { color: #888; display: block; font-size: 0.75rem; }
+    #inspector .field span { font-weight: 500; word-break: break-all; }
+    #inspector .placeholder { color: #aaa; font-style: italic; }
+
+    #error-panel {
+      display: none; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff0f0; border: 1px solid #f99; border-radius: 6px;
+      padding: 20px; max-width: 480px; text-align: center; color: #c00;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>tla2langgraph</h1>
+  <span class="spacer"></span>
+  <button id="btn-export-skeleton" class="btn" disabled>Export Python skeleton</button>
+  <button id="btn-export-png" class="btn" disabled>Export PNG</button>
+  <button id="btn-export-svg" class="btn" disabled>Export SVG</button>
+</header>
+
+<div class="main">
+  <div id="cy"></div>
+  <div id="inspector">
+    <h2>Inspector</h2>
+    <p class="placeholder">Click a node or edge to inspect it.</p>
+  </div>
+</div>
+
+<div id="error-panel"></div>
+
+<!-- Cytoscape.js + plugins (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.33.1/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-svg@0.4.0/cytoscape-svg.js"></script>
+
+<script src="app.js"></script>
+</body>
+</html>
